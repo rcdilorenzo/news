@@ -1,5 +1,3 @@
-import { UrlParamsCT } from '../category/Monoid';
-
 export interface Param<Key, Value> {
   _type: Key;
   value: Value;

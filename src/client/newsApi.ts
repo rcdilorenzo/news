@@ -1,13 +1,15 @@
 import * as t from 'io-ts';
 import axios from 'axios';
-import { UrlCT, UrlParamsCT } from '../category/Monoid';
+import { UrlCT } from '../category/Monoid';
 import { Params, Param } from './params';
-import { Either, either, getOrElse } from 'fp-ts/lib/Either';
+import { Either } from 'fp-ts/lib/Either';
 import decodeResult from './decodeResult';
 import { ArticleType } from '../models/article';
 import { SourceType } from '../models/source';
 
-const API_KEY = process.env.NEWS_API_KEY || '<api key>';
+const env = require('../env.json');
+
+const API_KEY = env.NEWS_API_KEY || '<api key>';
 const API_VERSION = 'v2';
 const baseUrl = UrlCT.mappend('https://newsapi.org', API_VERSION);
 const defaultParams: Params = { apiKey: API_KEY };
@@ -20,16 +22,14 @@ const NewsErrorResponse = t.type({
 
 export type NewsErrorResponse = t.TypeOf<typeof NewsErrorResponse>;
 
-const jsErrorToResponse = (error: any) => {
+export const jsErrorToResponse = (error: any): NewsErrorResponse => {
+  console.error(error);
+
   if (error.response && error.response.data) {
     return error.response.data;
   } else if (error.message) {
-    // NOTE: Could log error here
-    // console.warn(error);
-    return { status: 'error', code: 'unknown', message: error.message };
+    return { status: 'error', code: 'client-code-error', message: error.message };
   } else {
-    // NOTE: Could log error here
-    // console.warn(error);
     return {
       status: 'error',
       code: 'unknown',
@@ -91,7 +91,7 @@ interface EverythingParams {
   from?: string;
   to?: string
 }
- 
+
 const topHeadlines = async ({
   source,
   ...otherParams

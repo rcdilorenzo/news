@@ -1,6 +1,5 @@
-import { Unwrapped } from './util/Unwrapped';
-import foldr from './util/foldr';
-import trimSlash, { hasTrailing, trimStart } from './util/trimSlash';
+import foldr from "../util/foldr";
+import trimSlash from "../util/trimSlash";
 
 interface MonoidType<T> {
   mempty: T;
@@ -21,22 +20,5 @@ export const StringCT = Monoid({
 
 export const UrlCT = Monoid({
   mempty: StringCT.mempty,
-  mappend: (left, right) => {
-    const value = trimSlash(left);
-    return value === StringCT.mempty ?
-      trimSlash(right) :
-      `${value}/${trimSlash(right)}`;
-  }
-});
-
-const trimMark = (value: string) => trimStart(value, '?');
-
-export const UrlParamsCT = Monoid({
-  mempty: '?',
-  mappend: (left, right) => {
-    if (left === '?') {
-      return `?${trimMark(right)}`;
-    }
-    return `?${trimMark(left)}&${trimMark(right)}`;
-  }
+  mappend: (left, right) => `${trimSlash(left)}/${trimSlash(right)}`
 });

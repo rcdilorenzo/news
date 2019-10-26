@@ -18,6 +18,6 @@ export const trimTrailing = (value: string, character: string) => {
     value;
 }
 
-const trimSlash = (value: string) => trimTrailing(value, '/');
+const trimSlash = (value: string) => trimStart(trimTrailing(value, '/'), '/');
 
 export default trimSlash;
