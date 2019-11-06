@@ -1,7 +1,8 @@
 import React from 'react';
 import Async from 'react-async';
-import { NewsErrorResponse, jsErrorToResponse } from '../client/newsApi';
 import { Either, fold } from 'fp-ts/lib/Either';
+import { NewsErrorResponse } from '../client/types';
+import jsErrorToResponse from '../client/util/jsErrorToResponse';
 
 const ApiErrorComponent = (error: NewsErrorResponse) => (
   <div>

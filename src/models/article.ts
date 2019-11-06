@@ -1,14 +1,16 @@
 import * as t from 'io-ts';
-import { map, fromNullable, Option, some, chain } from 'fp-ts/lib/Option';
-import * as array from 'fp-ts/lib/Array';
+import { map, fromNullable, Option, some, chain, option } from 'fp-ts/lib/Option';
+import * as A from 'fp-ts/lib/Array';
 import { optionFromNullable } from 'io-ts-types/lib/optionFromNullable';
 import { DateFromISOString } from 'io-ts-types/lib/DateFromISOString';
 import { pipe } from 'fp-ts/lib/pipeable';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime'
 
-import compactOptions from '../category/compactOptions';
-import fromEmptyNullable from '../category/fromEmptyNullable';
+import fromEmptyNullable from '../util/fromEmptyNullable';
+import { getCompactableComposition } from 'fp-ts/lib/Compactable';
+import { intercalate } from 'fp-ts/lib/Foldable';
+import { monoidString } from 'fp-ts/lib/Monoid';
 
 dayjs.extend(relativeTime);
 
@@ -38,6 +40,9 @@ export const articleContent = (article: Article) => {
   )(article.content);
 }
 
+const join = (sep: string) => (items: string[]) =>
+  intercalate(monoidString, A.array)(sep, items);
+
 export const articleSubtitle = (article: Article) => {
   const elements = [
     article.author,
@@ -47,9 +52,9 @@ export const articleSubtitle = (article: Article) => {
 
   return pipe(
     elements,
-    array.map(chain(fromEmptyNullable)),
-    compactOptions,
-    items => items.join(' • '),
+    A.map(chain(fromEmptyNullable)),
+    A.compact,
+    join(' • '),
     fromEmptyNullable
   );
 };

@@ -1,79 +1,27 @@
 import * as t from 'io-ts';
 import axios from 'axios';
-import { UrlCT } from '../category/Monoid';
-import { Params, Param } from './params';
+import Url from './util/Url';
+import { Params } from './params';
 import { Either } from 'fp-ts/lib/Either';
 import decodeResult from './decodeResult';
-import { ArticleType } from '../models/article';
-import { SourceType } from '../models/source';
+import jsErrorToResponse from './util/jsErrorToResponse';
+import errorsToResponse from './util/errorsToResponse';
 
-const env = require('../env.json');
+import {
+  TopHeadlineParams,
+  NewsErrorResponse,
+  NewsArticleResponse,
+  NewsArticleResponseType,
+  NewsErrorResponseType,
+  SourcesParams,
+  NewsSourceResponse,
+  NewsSourceResponseType
+} from './types';
 
-const API_KEY = env.NEWS_API_KEY || '<api key>';
+const API_KEY = require('../env.json').NEWS_API_KEY || '<api key>';
 const API_VERSION = 'v2';
-const baseUrl = UrlCT.mappend('https://newsapi.org', API_VERSION);
-const defaultParams: Params = { apiKey: API_KEY };
-
-const NewsErrorResponse = t.type({
-  status: t.literal('error'),
-  code: t.string,
-  message: t.string
-});
-
-export type NewsErrorResponse = t.TypeOf<typeof NewsErrorResponse>;
-
-export const jsErrorToResponse = (error: any): NewsErrorResponse => {
-  console.error(error);
-
-  if (error.response && error.response.data) {
-    return error.response.data;
-  } else if (error.message) {
-    return { status: 'error', code: 'client-code-error', message: error.message };
-  } else {
-    return {
-      status: 'error',
-      code: 'unknown',
-      message: 'An unexpected error occurred. Please try again later.'
-    };
-  }
-};
-
-const errorsToResponse = (errors: t.Errors): NewsErrorResponse => {
-  console.warn(JSON.stringify(errors));
-  return {
-    status: 'error',
-    code: 'parseError',
-    message: `${errors.length} parsing error(s) encountered.`
-  }
-};
-
-const NewsArticleResponseType = t.type({
-  status: t.literal('ok'),
-  articles: t.array(t.exact(ArticleType))
-});
-
-const NewsSourceResponseType = t.type({
-  status: t.literal('ok'),
-  sources: t.array(t.exact(SourceType))
-});
-
-type NewsArticleResponse = t.TypeOf<typeof NewsArticleResponseType>;
-type NewsSourceResponse = t.TypeOf<typeof NewsSourceResponseType>;
-
-type CountryParam = Param<'country', string>;
-type CategoryParam = Param<'category', string>;
-type SourcesParam = Param<'sources', string[]>;
-
-interface TopHeadlineParams {
-  source: CountryParam | CategoryParam | SourcesParam;
-  q?: string;
-}
-
-interface SourcesParams {
-  category?: string;
-  language?: string;
-  country?: string;
-}
+const BASE_URL = Url.concat('https://newsapi.org', API_VERSION);
+const DEFAULT_PARAMS: Params = { apiKey: API_KEY };
 
 const urlSource = (source: TopHeadlineParams['source']): Params => {
   switch (source._type) {
@@ -84,25 +32,17 @@ const urlSource = (source: TopHeadlineParams['source']): Params => {
   }
 };
 
-interface EverythingParams {
-  source: CountryParam | CategoryParam | SourcesParam;
-  q?: string;
-  qInTitle?: string;
-  from?: string;
-  to?: string
-}
-
 const topHeadlines = async ({
   source,
   ...otherParams
 }: TopHeadlineParams): Promise<
   Either<NewsErrorResponse, NewsArticleResponse>
 > => {
-  const url = UrlCT.mappend(baseUrl, '/top-headlines');
+  const url = Url.concat(BASE_URL, '/top-headlines');
 
   const { data } = await axios.get(url, {
     params: {
-      ...defaultParams,
+      ...DEFAULT_PARAMS,
       ...urlSource(source),
       ...otherParams
     }
@@ -110,49 +50,27 @@ const topHeadlines = async ({
 
   return decodeResult(
     NewsArticleResponseType,
-    NewsErrorResponse,
+    NewsErrorResponseType,
     errorsToResponse,
     data
   );
 };
 
-const everything = async ({
-  source,
-  ...otherParams
-}: EverythingParams): Promise<Either<NewsErrorResponse, NewsArticleResponse>> => {
-  const url = UrlCT.mappend(baseUrl, '/everything');
-
-  const { data } = await axios.get(url, {
-    params: {
-      ...defaultParams,
-      ...urlSource(source),
-      ...otherParams
-    }
-  }).catch(error => ({ data: jsErrorToResponse(error) }));
-
-  return decodeResult(
-    NewsArticleResponseType,
-    NewsErrorResponse,
-    errorsToResponse,
-    data
-  );
-}
-
 const sources = async (params: SourcesParams): Promise<
   Either<NewsErrorResponse, NewsSourceResponse>
 > => {
-  const url = UrlCT.mappend(baseUrl, '/sources');
+  const url = Url.concat(BASE_URL, '/sources');
 
   const { data } = await axios.get(url, {
     params: {
-      ...defaultParams,
+      ...DEFAULT_PARAMS,
       ...params
     }
   }).catch(error => ({ data: jsErrorToResponse(error) }));
 
   return decodeResult(
     NewsSourceResponseType,
-    NewsErrorResponse,
+    NewsErrorResponseType,
     errorsToResponse,
     data
   );
@@ -160,7 +78,6 @@ const sources = async (params: SourcesParams): Promise<
 
 const newsApi = {
   topHeadlines,
-  everything,
   sources
 };
 
